@@ -47,6 +47,20 @@ export default function App() {
       : undefined;
   }, [sound]);
 
+  const handleIntervalChange = (text) => {
+    const newInterval = parseInt(text);
+    if (!isNaN(newInterval)) {
+      setIntervalDuration(newInterval);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      playSound();
+    }
+  };
+
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
@@ -55,8 +69,9 @@ export default function App() {
         <TextInput
           style={styles.input}
           value={intervalDuration.toString()}
-          onChangeText={(text) => setIntervalDuration(parseInt(text))}
+          onChangeText={handleIntervalChange}
           keyboardType="numeric"
+          onBlur={handleInputBlur}
         />
         <Text>BPM</Text>
       </View>
