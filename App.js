@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Text, View, StyleSheet, Button, TextInput, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Text, View, StyleSheet, Button, TextInput, TouchableWithoutFeedback, Keyboard, Animated, Easing } from 'react-native';
 import { Audio } from 'expo-av';
 
 export default function App() {
   const [sound, setSound] = React.useState();
   const [intervalId, setIntervalId] = React.useState(null);
   const [intervalDuration, setIntervalDuration] = React.useState(60); // 初期値は1秒
+  const swingAnimation = React.useRef(new Animated.Value(0)).current;
 
   async function playSound() {
     console.log('Loading Sound');
@@ -16,7 +17,8 @@ export default function App() {
     const id = setInterval(async () => {
       console.log('Playing Sound');
       await sound.replayAsync();
-    },  60 * 1000 / intervalDuration);
+      animatePendulum(); // 振り子のアニメーションを再生
+    }, 60 * 1000 / intervalDuration);
 
     // サウンド再生中に再生が完了した場合に clearInterval を呼び出す
     sound.setOnPlaybackStatusUpdate((status) => {
@@ -66,12 +68,12 @@ export default function App() {
     }
   };
 
-  const increaseBPM = () => {
-    const newBPM = intervalDuration + 1;
-    // BPM を 300 以上にしないよう制限する
-    if (newBPM <= 300) {
+  const changeBPM = (increment) => {
+    const newBPM = intervalDuration + increment;
+    // BPM を 1 以上かつ 300 以下に制限する
+    if (newBPM >= 1 && newBPM <= 300) {
       setIntervalDuration(newBPM);
-      // BPM を増加させた場合、再生間隔も更新する
+      // BPM を変更した場合、再生間隔も更新する
       if (intervalId) {
         clearInterval(intervalId);
         playSound();
@@ -79,26 +81,42 @@ export default function App() {
     }
   };
 
-  const decreaseBPM = () => {
-    const newBPM = intervalDuration - 1;
-    // BPM を 1 以下にしないよう制限する
-    if (newBPM >= 1) {
-      setIntervalDuration(newBPM);
-      // BPM を減少させた場合、再生間隔も更新する
-      if (intervalId) {
-        clearInterval(intervalId);
-        playSound();
-      }
-    }
+  // 振り子のアニメーションを定義
+  const animatePendulum = () => {
+    const duration = (60 * 1000) / intervalDuration; // BPMに連動したdurationの計算
+
+    Animated.sequence([
+      Animated.timing(swingAnimation, {
+        toValue: 1,
+        duration: duration / 2,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+      Animated.timing(swingAnimation, {
+        toValue: 0,
+        duration: duration / 2,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
+
+  // 振り子の角度を計算
+  const pendulumRotation = swingAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-40deg', '40deg'], // 左右対称に振れるように調整
+  });
 
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
+        <View style={styles.pendulumContainer}>
+          <Animated.View style={[styles.pendulum, { transform: [{ rotateZ: pendulumRotation }] }]} />
+        </View>
         <Button title="Play Sound" onPress={playSound} />
         <Button title="Stop Sound" onPress={stopSound} />
         <View style={styles.inputContainer}>
-          <Button title="-" onPress={decreaseBPM} />
+          <Button title="-" onPress={() => changeBPM(-10)} />
           <TextInput
             style={styles.input}
             value={intervalDuration.toString()}
@@ -106,7 +124,7 @@ export default function App() {
             keyboardType="numeric"
             onBlur={handleInputBlur}
           />
-          <Button title="+" onPress={increaseBPM} />
+          <Button title="+" onPress={() => changeBPM(10)} />
         </View>
         <Text>BPM</Text>
       </View>
@@ -121,6 +139,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ecf0f1',
     padding: 10,
+  },
+  pendulumContainer: {
+    height: 200,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  pendulum: {
+    width: 2,
+    height: 100,
+    backgroundColor: 'black',
+    transformOrigin: 'bottom',
   },
   inputContainer: {
     flexDirection: 'row',
