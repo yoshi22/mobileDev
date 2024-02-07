@@ -51,6 +51,11 @@ export default function App() {
     const newInterval = parseInt(text);
     if (!isNaN(newInterval)) {
       setIntervalDuration(newInterval);
+      // インターバルの更新時に再生間隔を更新する
+      if (intervalId) {
+        clearInterval(intervalId);
+        playSound();
+      }
     }
   };
 
@@ -61,18 +66,48 @@ export default function App() {
     }
   };
 
+  const increaseBPM = () => {
+    const newBPM = intervalDuration + 1;
+    // BPM を 300 以上にしないよう制限する
+    if (newBPM <= 300) {
+      setIntervalDuration(newBPM);
+      // BPM を増加させた場合、再生間隔も更新する
+      if (intervalId) {
+        clearInterval(intervalId);
+        playSound();
+      }
+    }
+  };
+
+  const decreaseBPM = () => {
+    const newBPM = intervalDuration - 1;
+    // BPM を 1 以下にしないよう制限する
+    if (newBPM >= 1) {
+      setIntervalDuration(newBPM);
+      // BPM を減少させた場合、再生間隔も更新する
+      if (intervalId) {
+        clearInterval(intervalId);
+        playSound();
+      }
+    }
+  };
+
   return (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={styles.container}>
         <Button title="Play Sound" onPress={playSound} />
         <Button title="Stop Sound" onPress={stopSound} />
-        <TextInput
-          style={styles.input}
-          value={intervalDuration.toString()}
-          onChangeText={handleIntervalChange}
-          keyboardType="numeric"
-          onBlur={handleInputBlur}
-        />
+        <View style={styles.inputContainer}>
+          <Button title="-" onPress={decreaseBPM} />
+          <TextInput
+            style={styles.input}
+            value={intervalDuration.toString()}
+            onChangeText={handleIntervalChange}
+            keyboardType="numeric"
+            onBlur={handleInputBlur}
+          />
+          <Button title="+" onPress={increaseBPM} />
+        </View>
         <Text>BPM</Text>
       </View>
     </TouchableWithoutFeedback>
@@ -87,13 +122,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#ecf0f1',
     padding: 10,
   },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 4,
     padding: 8,
-    marginTop: 10,
-    width: '50%',
+    width: 100,
     textAlign: 'center',
   },
 });
