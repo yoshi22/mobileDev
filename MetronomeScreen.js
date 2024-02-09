@@ -3,19 +3,22 @@
 import * as React from 'react';
 import { Text, View, StyleSheet, Button, TextInput, TouchableWithoutFeedback, Keyboard, Animated, Easing } from 'react-native';
 import { Audio } from 'expo-av';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+
+const tickSound = require('./assets/tick.mp3'); // tick.mp3 をインポート
 
 export default function MetronomeScreen() {
   const navigation = useNavigation();
-
-  const [sound, setSound] = React.useState();
+  const route = useRoute();
+  
+  const [sound, setSound] = React.useState(null);
   const [intervalId, setIntervalId] = React.useState(null);
   const [intervalDuration, setIntervalDuration] = React.useState(60);
   const swingAnimation = React.useRef(new Animated.Value(0)).current;
 
-  async function playSound() {
+  async function playSound(soundFile) { // 引数として音声ファイルを受け取る
     console.log('Loading Sound');
-    const { sound } = await Audio.Sound.createAsync(require('./assets/tick.mp3'));
+    const { sound } = await Audio.Sound.createAsync(soundFile);
     setSound(sound);
 
     const id = setInterval(async () => {
@@ -52,13 +55,17 @@ export default function MetronomeScreen() {
       : undefined;
   }, [sound]);
 
+  React.useEffect(() => {
+    playSound(route.params?.soundFile || tickSound); // パラメーターで渡された音声ファイルを再生
+  }, [route.params?.soundFile]); // パラメーターが変更されたときのみ実行
+
   const handleIntervalChange = (text) => {
     const newInterval = parseInt(text);
     if (!isNaN(newInterval)) {
       setIntervalDuration(newInterval);
       if (intervalId) {
         clearInterval(intervalId);
-        playSound();
+        playSound(route.params?.soundFile || tickSound); // パラメーターで渡された音声ファイルを再生
       }
     }
   };
@@ -66,7 +73,7 @@ export default function MetronomeScreen() {
   const handleInputBlur = () => {
     if (intervalId) {
       clearInterval(intervalId);
-      playSound();
+      playSound(route.params?.soundFile || tickSound); // パラメーターで渡された音声ファイルを再生
     }
   };
 
@@ -76,7 +83,7 @@ export default function MetronomeScreen() {
       setIntervalDuration(newBPM);
       if (intervalId) {
         clearInterval(intervalId);
-        playSound();
+        playSound(route.params?.soundFile || tickSound); // パラメーターで渡された音声ファイルを再生
       }
     }
   };
